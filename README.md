@@ -1,6 +1,6 @@
 # array-bcrypt-user
 
-Store and verify users with bcrypt passwords located in an array.
+Store and verify user accounts in an array using bcrypt passwords.
 
 ## Examples
 
@@ -80,7 +80,7 @@ opts:
 * hide {Boolean, default false} whether to suppress errors or not (for testing)
 
 
-Store and verify users with bcrypt passwords located in an array.
+Store and verify user accounts in an array using bcrypt passwords.
 
 Note: don't use `new User` but one of the factory methods `register` or `find` to
 construct a new user object.

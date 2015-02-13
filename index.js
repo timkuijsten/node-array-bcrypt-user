@@ -23,7 +23,7 @@ var async = require('async');
 var match = require('match-object');
 
 /**
- * Store and verify users with bcrypt passwords located in an array.
+ * Store and verify user accounts in an array using bcrypt passwords.
  *
  * @param {Array} db  array containing user objects
  * @param {String} username  name of the user to bind this instance to
