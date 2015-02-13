@@ -17,7 +17,7 @@
   "main": "index.js",
   "bugs": "https://github.com/timkuijsten/node-array-bcrypt-user/issues",
   "dependencies": {
-    "bcrypt-user": "~0.0.1"
+    "bcrypt-user": "~2.0.0"
   },
   "devDependencies": {
     "match-object": "~0.0.1",

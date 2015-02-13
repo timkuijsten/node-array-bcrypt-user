@@ -23,33 +23,20 @@ var async = require('async');
 var match = require('match-object');
 
 /**
- * Check parameters and throw if type is incorrect, or length out of bounds.
- *
- * @param {Array} db  throw if not an array
- * @param {String} username  throw if not a String
- * @param {String} password  throw if not a String
- * @param {String} realm  throw if not a String
- * @param {Function} cb  throw if not a Function
- * @return {undefined}
- */
-function _checkAllWithPassword(db, username, password, realm, cb) {
-  if (!Array.isArray(db)) { throw new TypeError('db must be an array'); }
-  BcryptUser._checkAllWithPassword(db, username, password, realm, cb);
-}
-
-/**
  * Store and verify users with bcrypt passwords located in an array.
  *
  * @param {Array} db  array containing user objects
- * @param {String} username  the name of the user to bind this instance to
- * @param {String, default: _default} [realm]  optional realm the user belongs to
+ * @param {String} username  name of the user to bind this instance to
+ * @param {Object} [opts]  object containing optional parameters
+ *
+ * opts:
+ *  realm {String, default "_default"}  optional realm the user belongs to
+ *  debug {Boolean, default false} whether to do extra console logging or not
+ *  hide {Boolean, default false} whether to suppress errors or not (for testing)
  */
-function User(db, username, realm) {
-  if (typeof realm === 'undefined') {
-    realm = '_default';
-  }
-
-  _checkAllWithPassword(db, username, 'xxxxxx', realm, function() {});
+function User(db, username, opts) {
+  if (!Array.isArray(db)) { throw new TypeError('db must be an array'); }
+  if (typeof username !== 'string') { throw new TypeError('username must be a string'); }
 
   // setup a resolver
   var resolver = {
@@ -87,9 +74,58 @@ function User(db, username, realm) {
     }
   };
 
-  BcryptUser.call(this, resolver, username, realm);
+  BcryptUser.call(this, resolver, username, opts || {});
 }
+
 util.inherits(User, BcryptUser);
 module.exports = User;
 
-User._checkAllWithPassword = _checkAllWithPassword;
+/**
+ * Create a new user with a certain password and save it to the database.
+ *
+ * @param {Object} db  array that contains all users
+ * @param {String} username  username to register
+ * @param {String} password  password to register
+ * @param {String, default "_default"} [realm]  optional realm the user belongs to
+ * @param {Function} cb  first parameter will be either an error object or null on
+ *                       success, second parameter will be either a user object or
+ *                       undefined on failure.
+ */
+User.register = function register(db, username, password, realm, cb) {
+  if (!Array.isArray(db)) { throw new TypeError('db must be an array'); }
+  if (typeof realm === 'function') {
+    cb = realm;
+    realm = '_default';
+  }
+
+  var user = new User(db, username, { realm: realm });
+  user.register(password, function(err) {
+    if (err) { cb(err); return; }
+
+    cb(null, user);
+  });
+};
+
+/**
+ * Find and return a user from the database.
+ *
+ * @param {Object} db  array that contains all users
+ * @param {String} username  username to search for
+ * @param {String, default "_default"} [realm]  optional realm the user belongs to
+ * @param {Function} cb  first parameter will be an error or null, second parameter
+ *                       will be the user object or undefined.
+ */
+User.find = function find(db, username, realm, cb) {
+  if (!Array.isArray(db)) { throw new TypeError('db must be an array'); }
+  if (typeof realm === 'function') {
+    cb = realm;
+    realm = '_default';
+  }
+
+  var user = new User(db, username, { realm: realm });
+  user.find(function(err) {
+    if (err) { cb(err); return; }
+
+    cb(null, user);
+  });
+};

@@ -41,31 +41,16 @@ function find(lookup, cb) {
 }
 
 describe('User', function () {
-  describe('_checkAllWithPassword', function () {
-    it('should require db to be an array', function() {
-      (function() { User._checkAllWithPassword(''); }).should.throw('db must be an array');
-    });
-
-    it('should require username to be a string', function() {
-      (function() { User._checkAllWithPassword(db); }).should.throw('username must be a string');
-    });
-
-    it('should not throw', function() {
-      User._checkAllWithPassword(db, 'foo', 'raboof', 'bar', function() {});
-    });
-  });
-
   describe('constructor', function () {
-    it('should require db to be an object', function() {
-      (function() { var user = new User(''); return user; }).should.throw('db must be an array');
+    it('should require db to be an array', function() {
+      (function() { return User.find(''); }).should.throw('db must be an array');
     });
     // assume all checks are handled by the previously tested User._checkAllWithPassword
   });
 
   describe('register', function () {
     it('should register', function(done) {
-      var user = new User(db, 'baz', 'ooregister');
-      user.register('p4ssword', function(err) {
+      User.register(db, 'baz', 'p4ssword', 'ooregister', function(err) {
         should.strictEqual(err, null);
         find({ realm: 'ooregister', username: 'baz' }, function(err, usr) {
           should.strictEqual(err, null);
@@ -86,13 +71,13 @@ describe('User', function () {
     });
   });
 
-  describe('exists', function () {
+  describe('find', function () {
     // use previously created user
-    it('should find that the user does exist', function(done) {
-      var user = new User(db, 'baz', 'ooregister');
-      user.exists(function(err, doesExist) {
+    it('should find the user', function(done) {
+      User.find(db, 'baz', 'ooregister', function(err, user) {
         if (err) { throw err; }
-        should.strictEqual(doesExist, true);
+        should.strictEqual(user._realm, 'ooregister');
+        should.strictEqual(user._username, 'baz');
         done();
       });
     });
@@ -102,20 +87,25 @@ describe('User', function () {
     // use previously created user
 
     it('should find that the password is invalid', function(done) {
-      var user = new User(db, 'baz', 'ooregister');
-      user.verifyPassword('secret', function(err, correct) {
+      User.find(db, 'baz', 'ooregister', function(err, user) {
         if (err) { throw err; }
-        should.strictEqual(correct, false);
-        done();
+        user.verifyPassword('secret', function(err, correct) {
+          if (err) { throw err; }
+          should.strictEqual(correct, false);
+          done();
+        });
       });
     });
 
     it('should find that the password is valid', function(done) {
-      var user = new User(db, 'baz', 'ooregister');
-      user.verifyPassword('p4ssword', function(err, correct) {
+      User.find(db, 'baz', 'ooregister', function(err, user) {
         if (err) { throw err; }
-        should.strictEqual(correct, true);
-        done();
+        user.verifyPassword('p4ssword', function(err, correct) {
+          if (err) { throw err; }
+
+          should.strictEqual(correct, true);
+          done();
+        });
       });
     });
   });
@@ -124,40 +114,46 @@ describe('User', function () {
     // use previously created user
 
     it('should update the password', function(done) {
-      var user = new User(db, 'baz', 'ooregister');
-      user.setPassword('secret', function(err) {
+      User.find(db, 'baz', 'ooregister', function(err, user) {
         if (err) { throw err; }
-        find({ username: 'baz', realm: 'ooregister' }, function(err, user) {
-          should.strictEqual(err, null);
-          should.strictEqual(user.realm, 'ooregister');
-          should.strictEqual(user.username, 'baz');
+        user.setPassword('secret', function(err) {
+          if (err) { throw err; }
+          find({ username: 'baz', realm: 'ooregister' }, function(err, usr) {
+            should.strictEqual(err, null);
+            should.strictEqual(usr.realm, 'ooregister');
+            should.strictEqual(usr.username, 'baz');
 
-          // bcrypt password example: '$2a$10$VnQeImV1DVqtQ7hXa.Sgsug9cCLVa65W4jO09w.I5tXcuYRbRVevu'
-          should.strictEqual(user.password.length, 60);
-          user.password.should.match(/^\$2a\$10\$/);
+            // bcrypt password example: '$2a$10$VnQeImV1DVqtQ7hXa.Sgsug9cCLVa65W4jO09w.I5tXcuYRbRVevu'
+            should.strictEqual(usr.password.length, 60);
+            usr.password.should.match(/^\$2a\$10\$/);
 
-          bcrypt.compare('secret', user.password, function(err, res) {
-            if (err) { throw err; }
-            if (res !== true) { throw new Error('passwords don\'t match'); }
-            done();
+            bcrypt.compare('secret', usr.password, function(err, res) {
+              if (err) { throw err; }
+              if (res !== true) { throw new Error('passwords don\'t match'); }
+              done();
+            });
           });
         });
       });
     });
 
     it('should require that the user exists in the given realm (wrong realm)', function(done) {
-      var user = new User(db, 'baz', 'ooregister2');
-      user.setPassword('secret', function(err) {
-        should.strictEqual(err.message, 'failed to update password');
-        done();
+      User.find(db, 'baz', 'ooregister2', function(err, user) {
+        if (err) { throw err; }
+        user.setPassword('secret', function(err) {
+          should.strictEqual(err.message, 'failed to update password');
+          done();
+        });
       });
     });
 
     it('should require that the user exists in the given realm (wrong username)', function(done) {
-      var user = new User(db, 'foo', 'ooregister');
-      user.setPassword('secret', function(err) {
-        should.strictEqual(err.message, 'failed to update password');
-        done();
+      User.find(db, 'baz', 'ooregister2', function(err, user) {
+        if (err) { throw err; }
+        user.setPassword('secret', function(err) {
+          should.strictEqual(err.message, 'failed to update password');
+          done();
+        });
       });
     });
   });
